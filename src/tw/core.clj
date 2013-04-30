@@ -70,10 +70,9 @@
 (defn get-data
   [text]
   (let [r (-< (split-by-nline text)
-              (->> (map split-by-space) (map rest-last) (map #(interpose " " %)) (map #(apply str %)))
+              (->> (map split-by-space) (map rest-last) (map #(interpose " " %)) (map #(apply str %)) (map keyword))
               (->> (map split-by-space) (map last) (map extract-int-string) (map str->int) (map words-to-mins)))]
     (map #(vector %1 %2) (first r) (second r))))
-
 
 (get-data text2)
 
@@ -83,43 +82,161 @@
   [coll]
   (reduce #(+ %1 (second %2)) 0 coll))
 
-(def track-def [[9 12] [1 5]])
+(def track-def [{:start 9 :end 12 :talks []} {:start 1 :end 5 :talks []}])
 
-(def weighted-num #(/ % 60))
 
-(def weighted-total #(-> % get-total weighted-num double))
 
-(defn talk-exists?
-  [talk tracks]
-  (not-any? #(= % track)))
+(def weighted-num #(double (/ % 60)))
+
+(def weighted-total #(-> % get-total weighted-num))
 
 (weighted-total [[:a 30] [:b 60]])
+
+(def session-time #(- (second %)
+                      (first %)))
+
+(def get-tracks (partial partition 2))
+
+(get-tracks '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30]))
+
+(defn which-session?
+  [talk sessions]
+  (some #(cond
+          (= (first %) talk) 0
+          (= (second %) talk) 1
+          :else nil)
+        (get-tracks sessions)))
+
+(fact "A"
+      (which-session? [:d 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => 2
+      (which-session? [:h 20] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => 1
+      (which-session? [:z 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => nil)
+
+(session-time [9 12])
+
+(def session-format (fn [talk sessions]
+                      (->> (which-session? talk sessions) (get track-def))))
+
+(session-format [:b 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30]))
+
+(def get-talk-time #(second %))
+
+(get-talk-time [:a 30])
+
+(def get-talk-title #(first %))
+
+(def can-add-to-session? (fn [talk session]
+                           (let [time-till-now (weighted-total session)
+                                 talk-time (weighted-num (get-talk-time talk))
+                                 allowed-session-time ])))
+
+(get track-def 1)
+
+(defn add-to-session
+  [talk session]
+  ())
+
+(defn exists-in-session?
+  [session talk]
+  (= talk (first session)))
+
+(fact "A"
+      (exists-in-session? [:a 20] :a) => true
+      (exists-in-session? [:a 20] :c) => false)
+
+;; (defn exists-in-tracks?
+;;   [tracks talk]
+;;   (empty? (for [track tracks
+;;                sessions track
+;;                session sessions
+;;                :when (exists-in-session? session talk)
+;;                :while (exists-in-session? session talk)]
+;;            true)))
+
+(def not-nil? (complement nil?))
+
+(defn in-coll?
+  [v coll]
+  (not-nil? (some #{v} (flatten coll))))
+
+(in-coll? :z [[[[:a 20] [:b :30]] [[:c 20] [:d :30]]]
+              [[[:h 20] [:g :30]] [[:f 20] [:e :30]]]])
 
 (def empty-track [[] []])
 
 (def add-track (partial cons empty-track))
 
-(defn assemble-tracks
-  [talks]
-  (loop [[f & r] talks tracks empty-track]
-    (cond
-     (nil? f) tracks
-     :else (recur r (add-to-track f tracks)))))
+(defn session?
+  [v]
+  (if (vector? v)
+    (and (keyword? (first v)) (integer? (second v)))
+    false))
 
-(defn add-to-track
+(facts "A"
+       (session? [:a 60]) => true
+       (session? :b) => false
+       (session? 20) => false)
+
+(defn get-sessions
+  [tracks]
+  (filter session? (tree-seq sequential? identity tracks)))
+
+(pprint (get-sessions [[[[:a 20] [:b 30]] [[:c 20] [:d 30]]]
+                       [[[:h 20] [:g 30]] [[:f 20] [:e 30]]]]))
+
+(get-sessions [[[[:a 20] [:b 30]] [[:c 20] [:d 30]]]
+               [[[:h 20] [:g 30]] [[:f 20] [:e 30]]]])
+
+
+
+;; (defn assemble-tracks
+;;   [talks]
+;;   (loop [[f & r] talks tracks empty-track]
+;;     (cond
+;;      (nil? f) tracks
+;;      :else (recur r (add-to-track f tracks)))))
+
+(def talks (get-data text2))
+
+(def get-tracks #(repeat % empty-track))
+
+(def num-of-tracks 2)
+
+(get-tracks 2)
+
+(def last-branch? (complement (comp sequential? first first)))
+
+(last-branch? [[:a 20] [:b 30]])
+
+(last-branch? [[[:a 20] [:b 30]]])
+
+(def tracks-to-sessions #(filter last-branch?
+                                 (tree-seq (complement last-branch?) identity %)))
+
+(fact "a"
+      (tracks-to-sessions (get-tracks 2))
+      (tracks-to-sessions [[[[:a 30] [:c 30]]] [[[:e 30] [:f 30]]]]))
+
+(can-add-to-sessions )
+
+(not-empty [:e])
+
+(defn add-talk
   [talk tracks]
-  ()
-  (cond
-   ())
-  (for [track tracks]))
+  (cons talk tracks))
+
+(reduce (fn [tracks talk]
+          (add-talk talk tracks))
+        (-> num-of-tracks get-tracks tracks-to-sessions)
+        talks)
+
 
 (assemble-tracks d)
 
 (def conversions (slurp "src/tw/conversions.txt"))
 
 (->> conversions split-by-nline (map split-by-tab) (into {}) (map #(hash-map (first %) (str->int (second %))))
-     (reduce merge) ;(map #(hash-map (keyword %1) %2))
-     )
+     (reduce merge) ;(map #(hash-map (keyword %1) %2)))
 
 (def primitive-conv {:I 1 :V 5 :X 10 :L 50 :C 100 :D 500 :M 1000})
 
@@ -193,5 +310,4 @@
 
 (add-transform sub-with-values)
 
-(-> [:pish :tegj :glob :glob] transform eval
-    )
+(-> [:pish :tegj :glob :glob] transform eval)
