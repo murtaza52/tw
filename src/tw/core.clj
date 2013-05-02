@@ -2,7 +2,7 @@
   (:use [midje.sweet :only [fact facts truthy falsey]]
         [clojure.string :only [split]]
         [clojure.algo.generic.functor :only [fmap]]
-        [clojure.set :only [difference]]
+        [clojure.set :only [union difference]]
         [swiss-arrows.core :only [-< -<>]]
         [clojure.pprint :only [pprint]]))
 
@@ -82,9 +82,21 @@
   [coll]
   (reduce #(+ %1 (second %2)) 0 coll))
 
-(def track-def [{:start 9 :end 12 :talks []} {:start 1 :end 5 :talks []}])
+(get-total [[:a 30] [:b 30] [:a 30] [:b 30] [:a 30] [:b 30] [:b 30]])
 
+(def morning-session {:start 9 :end 12 :talks []})
 
+(def evening-session {:start 1 :end 5 :talks []})
+
+(def track-def [morning-session evening-session])
+
+(defn make-tracks
+  [to-add]
+  (let [tracks (flatten (repeat to-add track-def))]
+    (->> (map #(merge (hash-map :id %2) %1) tracks (range))
+         (into #{}))))
+
+(def tracks (make-tracks 2))
 
 (def weighted-num #(double (/ % 60)))
 
@@ -92,32 +104,10 @@
 
 (weighted-total [[:a 30] [:b 60]])
 
-(def session-time #(- (second %)
-                      (first %)))
+(def get-session-time #(- (% :end)
+                          (% :start)))
 
-(def get-tracks (partial partition 2))
-
-(get-tracks '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30]))
-
-(defn which-session?
-  [talk sessions]
-  (some #(cond
-          (= (first %) talk) 0
-          (= (second %) talk) 1
-          :else nil)
-        (get-tracks sessions)))
-
-(fact "A"
-      (which-session? [:d 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => 2
-      (which-session? [:h 20] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => 1
-      (which-session? [:z 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30])) => nil)
-
-(session-time [9 12])
-
-(def session-format (fn [talk sessions]
-                      (->> (which-session? talk sessions) (get track-def))))
-
-(session-format [:b 30] '([:a 20] [:b 30] [:c 20] [:d 30] [:h 20] [:g 30] [:f 20] [:e 30]))
+(get-session-time {:start 9 :end 12 :talks []})
 
 (def get-talk-time #(second %))
 
@@ -126,32 +116,40 @@
 (def get-talk-title #(first %))
 
 (def can-add-to-session? (fn [talk session]
-                           (let [time-till-now (weighted-total session)
+                           (let [allowed-time (get-session-time session)
+                                 time-already-alloted (weighted-total (session :talks))
                                  talk-time (weighted-num (get-talk-time talk))
-                                 allowed-session-time ])))
+                                 remaining-time (- allowed-time (+ talk-time time-already-alloted))]
+                             (or (pos? remaining-time) (zero? remaining-time)))))
 
-(get track-def 1)
+(can-add-to-session? [:a 30] {:start 9 :end 12 :talks [[:a 30] [:b 30]]})
+(can-add-to-session? [:a 30] {:start 9 :end 12 :talks [[:b 30] [:a 30] [:b 30] [:a 30] [:b 30]]})
+(can-add-to-session? [:a 30] {:start 9 :end 12 :talks [[:a 30] [:b 30] [:a 30] [:b 30] [:a 30] [:b 30] [:b 30]]})
 
-(defn add-to-session
+(defn add-talk-to-session
   [talk session]
+  (->> (session :talks) (cons talk) (hash-map :talks) (merge session)))
+
+(add-talk-to-session [:z 30] {:start 9 :end 12 :talks [[:a 30] [:b 30]]})
+
+(defn add-talk
+  [talk sessions]
+  (when-let [session (->> (filter #(can-add-to-session? talk %) sessions) (take 1) first)]
+    (-> (difference sessions #{session}) (union #{(add-talk-to-session talk session)}))))
+
+(add-talk [:z 30] tracks)
+
+(defn add-talks
+  [talks sessions]
+  (reduce #(add-talk %2 %1) sessions talks))
+
+(add-talks [[:a 30] [:b 60] [:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60]] tracks)
+
+(defn add-time
+  [sessions]
   ())
 
-(defn exists-in-session?
-  [session talk]
-  (= talk (first session)))
-
-(fact "A"
-      (exists-in-session? [:a 20] :a) => true
-      (exists-in-session? [:a 20] :c) => false)
-
-;; (defn exists-in-tracks?
-;;   [tracks talk]
-;;   (empty? (for [track tracks
-;;                sessions track
-;;                session sessions
-;;                :when (exists-in-session? session talk)
-;;                :while (exists-in-session? session talk)]
-;;            true)))
+(def talks (get-data text2))
 
 (def not-nil? (complement nil?))
 
@@ -188,7 +186,6 @@
                [[[:h 20] [:g 30]] [[:f 20] [:e 30]]]])
 
 
-
 ;; (defn assemble-tracks
 ;;   [talks]
 ;;   (loop [[f & r] talks tracks empty-track]
@@ -196,7 +193,6 @@
 ;;      (nil? f) tracks
 ;;      :else (recur r (add-to-track f tracks)))))
 
-(def talks (get-data text2))
 
 (def get-tracks #(repeat % empty-track))
 
@@ -216,8 +212,6 @@
 (fact "a"
       (tracks-to-sessions (get-tracks 2))
       (tracks-to-sessions [[[[:a 30] [:c 30]]] [[[:e 30] [:f 30]]]]))
-
-(can-add-to-sessions )
 
 (not-empty [:e])
 
