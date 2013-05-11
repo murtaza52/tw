@@ -1,12 +1,13 @@
-(ns tw.coll.utils)
+;; This ns contains fns for working with collections.
+(ns tw.utils.coll)
 
 (defn update-first
-  [pred update]
+  [pred f]
   (fn [coll & p]
     (reduce
      (fn [acc x]
        (if (pred x p)
-         (reduced (concat (:res acc) [(update x p)] (rest (:coll acc))))
+         (reduced (concat (:res acc) [(f x p)] (rest (:coll acc))))
          (assoc acc
            :res (conj (:res acc) x)
            :coll (rest (:coll acc)))))
