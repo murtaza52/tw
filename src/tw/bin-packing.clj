@@ -67,11 +67,11 @@
 (def sample-items [{:desc :new-a :weight 10} {:desc :new-b :weight 20} {:desc :new-c :weight 20}])
 
 (defn add-items
-  [pred f]
+  [pred f fsort]
   (fn [bins items]
-    (let [add-f (add-item pred f)]
-      (reduce #(add-f %1 %2) bins items))))
+    (let [add-f (add-item pred f) sorted-items (reverse (fsort items))]
+      (reduce #(add-f %1 %2) bins sorted-items))))
 
-(def add-test-items (add-items can-add-to-sample-bin? update-bin))
+(def add-test-items (add-items can-add-to-sample-bin? update-bin #(sort-by :weight %)))
 
 (add-test-items sample-bins (reverse (sort-by :weight sample-items)))

@@ -1,17 +1,11 @@
 (ns tw.core
-  (:use [midje.sweet :only [fact facts truthy falsey]]
-        [clojure.string :only [split]]
-        [clojure.set :only [union difference]]
+  (:use [midje.sweet :only [fact facts]]
         [swiss-arrows.core :only [-< -<>]]
-        [clojure.pprint :only [pprint]]
-        [clj-time.core :only [hours date-time plus minutes minute]]
-        [clj-time.format :only [unparse formatter]]
-        [table.core :only [table]]
         [tw.bin-packing :only [can-add-to-bin? add-items]]
         [tw.parsing :only [parse-input]]
         [tw.utils.time :only [time-to-string init-time add-mins]]
         [tw.print :only [print-tracks]]))
-x
+
 (def get-session-time #(- (% :end)
                           (% :start)))
 
@@ -35,7 +29,9 @@ x
 
 (add-to-session {:talks []} [[:a 30]])
 
-(def add-talks (add-items can-add-to-session? add-to-session))
+(def sort-talks (partial sort-by second))
+
+(def add-talks (add-items can-add-to-session? add-to-session sort-talks))
 
 (def text (slurp "src/tw/input.txt"))
 
@@ -56,8 +52,6 @@ x
 
 (add-talks tracks (parse-input text))
 
-(def sort-talks (partial sort-by second))
-
 (def date-format "hh:mm a")
 
 (def dt-str (partial time-to-string date-format))
@@ -75,7 +69,7 @@ x
       (merge session {:talks agg-talks}))))
 
 (def organizer-events {:lunch [:Lunch nil "12:00PM"]
-                   :networking [(keyword "Networking Event") nil "05:00PM"]})
+                       :networking [(keyword "Networking Event") nil "05:00PM"]})
 
 (def add-organizer-events
   (partial map (fn [{:keys [talks id] :as s}]
@@ -83,4 +77,4 @@ x
                     (assoc s :talks (conj talks (organizer-events :lunch)))
                     (assoc s :talks (conj talks (organizer-events :networking)))))))
 
-(def assembled-tracks (-<> (parse-input text) (sort-talks) reverse (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))
+(def assembled-tracks (-<> (parse-input text) (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))
