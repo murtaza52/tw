@@ -6,8 +6,12 @@
         [tw.utils.time :only [time-to-string init-time add-mins]]
         [tw.print :only [print-tracks]]))
 
-(def get-session-time #(- (% :end)
-                          (% :start)))
+;; functions for filling up the tracks with talks, using the bin packing way.
+;; ##########################################################################
+
+(def sort-talks (partial sort-by second))
+
+(def get-session-time #(- (% :end) (% :start)))
 
 (get-session-time {:start 9 :end 12 :talks []})
 
@@ -28,8 +32,6 @@
   (assoc session :talks (conj (:talks session) talk)))
 
 (add-to-session {:talks []} [[:a 30]])
-
-(def sort-talks (partial sort-by second))
 
 (def add-talks (add-items can-add-to-session? add-to-session sort-talks))
 
@@ -77,4 +79,6 @@
                     (assoc s :talks (conj talks (organizer-events :lunch)))
                     (assoc s :talks (conj talks (organizer-events :networking)))))))
 
-(def assembled-tracks (-<> (parse-input text) (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))
+(defn assembled-tracks
+  []
+  (-<> (parse-input text) (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))

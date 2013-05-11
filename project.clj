@@ -9,4 +9,8 @@
                  [clj-time "0.5.0"]
                  [table "0.4.0"]]
   :plugins [[lein-midje "3.0.0"]]
-  :profiles {:dev {:dependencies [[midje "1.5.0"]]}})
+  :profiles {:dev {:dependencies [[midje "1.5.0"]]}}
+  :repl-options {:init-ns tw.core
+                 :init (do
+                         (use 'tw.core)
+                         (assembled-tracks))})
