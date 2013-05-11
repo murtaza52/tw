@@ -40,8 +40,6 @@
 
 (freturn (extract-int-string "m24min") "lightning")
 
-;;todo -see how to parse diff patterns
-
 (defn str->int
   [str]
   (freturn (if (re-matches (re-pattern "\\d+") str) (read-string str))
