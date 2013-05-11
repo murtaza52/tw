@@ -86,8 +86,6 @@
                (conj agg-talks (conj current-talk (to-schedule agg-time)))))
       (merge session {:talks agg-talks}))))
 
-(map (fn [[a _ schedule]] (to-schedule schedule)) (add-time {:talks '([:Clojure 45] [:Ruby 60] [:Writing 60]),:start 9,:end 12,:id 0}))
-
 (def lunch [:Lunch nil "12:00 PM"])
 
 (def networking [(keyword "Networking Event") nil "05:00 PM"])
@@ -98,7 +96,48 @@
                     (assoc s :talks (conj talks lunch))
                     (assoc s :talks (conj talks networking))))))
 
-(def assemble-tracks (-<> (parse-input text) (sort-talks) reverse (add-talks tracks <>) (map add-time <>) add-organising-events))
+(def assembled-tracks (-<> (parse-input text) (sort-talks) reverse (add-talks tracks <>) (map add-time <>) add-organising-events))
+
+(def print-talk (fn [[title time schedule]]
+                  (println schedule (name title) (cond
+                                                  (nil? time) ""
+                                                  (= 5 time) "lightning"
+                                                  :else (str time "min")))))
+
+(pprint assembled-tracks)
+
+(print-talk [:Lunch nil "12:00PM"])
+
+(print-talk [(keyword "Ata de Scala") 30 "11:00PM"])
+
+(def print-session #(doseq [talk (:talks %)]
+                     (print-talk talk)))
+
+(def sample-session
+ {:talks
+  [[:A 30 "01:00 AM"]
+   [:Ruby 30 "01:30 AM"]
+   [:Programming 30 "02:00 AM"]
+   [:Sit
+ 30 "02:30 AM"]
+   [:Woah 30 "03:00 AM"]
+   [:Lua 30 "03:30 AM"]
+   [:Rails 5 "04:00 AM"]
+   [:Networking nil "05:00 PM"]],
+  :start 1,
+  :end 5,
+  :id 3})
+
+(print-session sample-session)
+
+(def print-track #(doseq [session %]
+                   (print-session session)))
+
+(doseq [[track counter] (map (fn [t c] [t c]) (partition 2 assembled-tracks) (iterate inc 1))]
+  (do
+    (println)
+    (println (str "Track " counter ":"))
+    (print-track track)))
 
 (pprint result)
 (table result :style :unicode)
@@ -106,6 +145,9 @@
 (def print-fn (fn [track track-num]
                 (pprint (str "Track " track-num))))
 
-(map #(vector (str "Track " %2) %1) (partition 2 result) (iterate inc 1))
+(do (map (fn [track num] (println (str "Track " num)))
+     (partition 2 assembled-tracks)
+     (iterate inc 1)))
+
 
 (pprint (map #(vector (str "Track " %2) %1) (partition 2 result) (iterate inc 1)))
