@@ -37,11 +37,10 @@
 
 (def text (slurp "src/tw/input.txt"))
 
-(def morning-session {:start 9 :end 12 :talks []})
+(def session-types {:morning-session {:start 9 :end 12 :talks []}
+                    :evening-session {:start 1 :end 5 :talks []}})
 
-(def evening-session {:start 1 :end 5 :talks []})
-
-(def track-def [morning-session evening-session])
+(def track-def [(session-types :morning-session) (session-types :evening-session)])
 
 (defn make-tracks
   [n]
