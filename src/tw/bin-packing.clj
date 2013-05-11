@@ -1,6 +1,6 @@
 ;; This ns contains generic code to solve a 1D bin-packing problem.
 (ns tw.bin-packing
-  (:use [tw.utils :only [update-first]]))
+  (:use [tw.utils.coll :only [update-first]]))
 
 (def sample-bin {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50} {:desc :a :weight 30}]})
 

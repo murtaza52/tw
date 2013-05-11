@@ -1,4 +1,4 @@
-(ns tw.utils)
+(ns tw.coll.utils)
 
 (defn update-first
   [pred update]

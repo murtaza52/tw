@@ -8,8 +8,10 @@
         [clj-time.format :only [unparse formatter]]
         [table.core :only [table]]
         [tw.bin-packing :only [can-add-to-bin? add-items]]
-        [tw.parsing :only [parse-input]]))
-
+        [tw.parsing :only [parse-input]]
+        [tw.utils.time :only [time-to-string init-time add-mins]]
+        [tw.print :only [print-tracks]]))
+x
 (def get-session-time #(- (% :end)
                           (% :start)))
 
@@ -56,23 +58,9 @@
 
 (def sort-talks (partial sort-by second))
 
-(defn init-time
-  [hour]
-  (date-time 2001 01 01 hour))
+(def date-format "hh:mm a")
 
-(defn add-mins
-  [time mins]
-  (plus time (minutes mins)))
-
-(def custom-formatter (formatter "hh:mm a"))
-
-(defn to-schedule
-  [time]
-  (unparse custom-formatter time))
-
-(-> (init-time 11) (add-mins 45) (add-mins 30)
-                                        ;(get-hour-min)
-    )
+(def dt-str (partial time-to-string date-format))
 
 (defn add-time
   [session]
@@ -83,71 +71,16 @@
             new-agg-time (add-mins agg-time time)]
         (recur new-agg-time
                (rest talks)
-               (conj agg-talks (conj current-talk (to-schedule agg-time)))))
+               (conj agg-talks (conj current-talk (dt-str agg-time)))))
       (merge session {:talks agg-talks}))))
 
-(def lunch [:Lunch nil "12:00 PM"])
+(def organizer-events {:lunch [:Lunch nil "12:00PM"]
+                   :networking [(keyword "Networking Event") nil "05:00PM"]})
 
-(def networking [(keyword "Networking Event") nil "05:00 PM"])
-
-(def add-organising-events
+(def add-organizer-events
   (partial map (fn [{:keys [talks id] :as s}]
                   (if (even? id)
-                    (assoc s :talks (conj talks lunch))
-                    (assoc s :talks (conj talks networking))))))
+                    (assoc s :talks (conj talks (organizer-events :lunch)))
+                    (assoc s :talks (conj talks (organizer-events :networking)))))))
 
-(def assembled-tracks (-<> (parse-input text) (sort-talks) reverse (add-talks tracks <>) (map add-time <>) add-organising-events))
-
-(def print-talk (fn [[title time schedule]]
-                  (println schedule (name title) (cond
-                                                  (nil? time) ""
-                                                  (= 5 time) "lightning"
-                                                  :else (str time "min")))))
-
-(pprint assembled-tracks)
-
-(print-talk [:Lunch nil "12:00PM"])
-
-(print-talk [(keyword "Ata de Scala") 30 "11:00PM"])
-
-(def print-session #(doseq [talk (:talks %)]
-                     (print-talk talk)))
-
-(def sample-session
- {:talks
-  [[:A 30 "01:00 AM"]
-   [:Ruby 30 "01:30 AM"]
-   [:Programming 30 "02:00 AM"]
-   [:Sit
- 30 "02:30 AM"]
-   [:Woah 30 "03:00 AM"]
-   [:Lua 30 "03:30 AM"]
-   [:Rails 5 "04:00 AM"]
-   [:Networking nil "05:00 PM"]],
-  :start 1,
-  :end 5,
-  :id 3})
-
-(print-session sample-session)
-
-(def print-track #(doseq [session %]
-                   (print-session session)))
-
-(doseq [[track counter] (map (fn [t c] [t c]) (partition 2 assembled-tracks) (iterate inc 1))]
-  (do
-    (println)
-    (println (str "Track " counter ":"))
-    (print-track track)))
-
-(pprint result)
-(table result :style :unicode)
-
-(def print-fn (fn [track track-num]
-                (pprint (str "Track " track-num))))
-
-(do (map (fn [track num] (println (str "Track " num)))
-     (partition 2 assembled-tracks)
-     (iterate inc 1)))
-
-
-(pprint (map #(vector (str "Track " %2) %1) (partition 2 result) (iterate inc 1)))
+(def assembled-tracks (-<> (parse-input text) (sort-talks) reverse (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))
