@@ -23,6 +23,10 @@
 
 (def can-add-to-session? (can-add-to-bin? get-session-time session-talks talk-time))
 
+(can-add-to-session? {:start 9 :end 12 :talks [[:a 30] [:b 30]]} [[:a 30]])
+(can-add-to-session? {:start 9 :end 12 :talks [[:b 30] [:a 30] [:b 30] [:a 30] [:b 30]]} [[:a 30]])
+(can-add-to-session? {:start 9 :end 12 :talks [[:a 30] [:b 30] [:a 30] [:b 30] [:a 30] [:b 30] [:b 30]]} [[:a 30]])
+
 (defn add-to-session
   [session [talk]]
   (assoc session :talks (conj (:talks session) talk)))
@@ -49,42 +53,6 @@
 (def weighted-num #(double (/ % 60)))
 
 (add-talks tracks (parse-input text))
-
-
-;; (def weighted-total #(-> % get-total weighted-num))
-
-;; (weighted-total [[:a 30] [:b 60]])
-
-;; (def can-add-to-session? (fn [[_ time] session]
-;;                            ((some-fn pos? zero?) (- (get-session-time session)
-;;                                                     (+ (weighted-num time) (weighted-total (session :talks)))))))
-
-;; (def is-session-full? #(zero? (- (get-session-time %) (weighted-total (% :talks)))))
-
-(can-add-to-session? {:start 9 :end 12 :talks [[:a 30] [:b 30]]} [[:a 30]])
-(can-add-to-session? {:start 9 :end 12 :talks [[:b 30] [:a 30] [:b 30] [:a 30] [:b 30]]} [[:a 30]])
-(can-add-to-session? {:start 9 :end 12 :talks [[:a 30] [:b 30] [:a 30] [:b 30] [:a 30] [:b 30] [:b 30]]} [[:a 30]])
-
-;; (defn add-talk-to-session
-;;   [talk session]
-;;   (->> (session :talks) (cons talk) (hash-map :talks) (merge session)))
-
-;; (add-talk-to-session [:z 30] {:start 9 :end 12 :talks [[:a 30] [:b 30]]})
-
-;; (defn add-talk
-;;   [talk sessions]
-;;   (when-let [session (->> (filter #(can-add-to-session? talk %) sessions) first)]
-;;     (-> (difference sessions #{session}) (union #{(add-talk-to-session talk session)}))))
-
-;; (add-talk [:z 30] tracks)
-
-;; (defn add-talks
-;;   [talks sessions]
-;;   (reduce #(add-talk %2 %1) sessions talks))
-
-;; (add-talks [[:a 30] [:b 60] [:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60]] tracks)
-
-;;(def sort-talks (partial into (sorted-set-by #(< (:id %1) (:id %2)))))
 
 (def sort-talks (partial sort-by second))
 
