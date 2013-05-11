@@ -26,11 +26,11 @@
 (def item-wt :weight)
 
 (defn can-add-to-bin?
-  [bin-capacity bin-items item-wt]
+  [bin-capacity bin-items item-w]
   (fn [bin [item]]
     ((some-fn pos? zero?) (- (bin-capacity bin)
-                             (+ ((agg item-wt) (bin-items bin))
-                                (item-wt item))))))
+                             (+ ((agg item-w) (bin-items bin))
+                                (item-w item))))))
 
 (def can-add-to-sample-bin? (can-add-to-bin? bin-capacity bin-items item-wt))
 
