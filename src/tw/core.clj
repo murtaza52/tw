@@ -4,7 +4,10 @@
         [clojure.algo.generic.functor :only [fmap]]
         [clojure.set :only [union difference]]
         [swiss-arrows.core :only [-< -<>]]
-        [clojure.pprint :only [pprint]]))
+        [clojure.pprint :only [pprint]]
+        [clj-time.core :only [hours date-time plus minutes minute]]
+        [clj-time.format :only [unparse formatter]]
+        [table.core :only [table]]))
 
 (def text1 (slurp "src/tw/input2.txt"))
 ;; (def text "Ruby Errors from Mismatched Gem Versions 45min
@@ -109,18 +112,21 @@
 
 (get-session-time {:start 9 :end 12 :talks []})
 
-(def get-talk-time #(second %))
+(def can-add-to-session? (fn [[_ time] session]
+                           ((some-fn pos? zero?) (- (get-session-time session)
+                                                    (+ (weighted-num time) (weighted-total (session :talks)))))))
 
-(get-talk-time [:a 30])
+(def is-session-full? #(zero? (- (get-session-time %) (weighted-total (% :talks)))))
 
-(def get-talk-title #(first %))
+memmoize is-session-full?
 
-(def can-add-to-session? (fn [talk session]
-                           (let [allowed-time (get-session-time session)
-                                 time-already-alloted (weighted-total (session :talks))
-                                 talk-time (weighted-num (get-talk-time talk))
-                                 remaining-time (- allowed-time (+ talk-time time-already-alloted))]
-                             (or (pos? remaining-time) (zero? remaining-time)))))
+(def is-better-fit? (fn [[_ time] session]
+                      ))
+
+check if the talks are getting near, if the time after adding this talk is lesser.
+
+(when (not (is-session-full? session))
+                        (is-better-fit? session))
 
 (can-add-to-session? [:a 30] {:start 9 :end 12 :talks [[:a 30] [:b 30]]})
 (can-add-to-session? [:a 30] {:start 9 :end 12 :talks [[:b 30] [:a 30] [:b 30] [:a 30] [:b 30]]})
@@ -134,8 +140,38 @@
 
 (defn add-talk
   [talk sessions]
-  (when-let [session (->> (filter #(can-add-to-session? talk %) sessions) (take 1) first)]
+  (when-let [session (->> (filter #(can-add-to-session? talk %) sessions) first)]
     (-> (difference sessions #{session}) (union #{(add-talk-to-session talk session)}))))
+
+i have some talks [[:a 30] [:b 60] [:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60]]
+
+loop through the items
+loop through the bins
+add the
+
+(loop [[fi & ri] items bins b]
+  (when fi
+    (recur ri (loop [[fb & rb] bins]
+                (when fb
+                  (if (can-add? fi fb)
+                    (add-to-bin fi fb)
+                    (recur rb)))))))
+
+(defn update-first
+  [pred update]
+  (fn [coll]
+    (reduce
+     (fn [acc x]
+       (if (pred x)
+         (reduced (concat (:res acc) (update x) (rest (:coll acc))))
+         (assoc acc
+           :res (conj (:res acc) x)
+           :coll (rest (:coll acc)))))
+     {:coll coll :res []}
+     coll)))
+
+loop through the items
+add an item
 
 (add-talk [:z 30] tracks)
 
@@ -145,11 +181,55 @@
 
 (add-talks [[:a 30] [:b 60] [:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60][:a 30] [:b 60]] tracks)
 
-(defn add-time
-  [sessions]
-  ())
+(def sort-talks (partial into (sorted-set-by #(< (:id %1) (:id %2)))))
 
-(def talks (get-data text2))
+(defn init-time
+  [hour]
+  (date-time 2001 01 01 hour))
+
+(defn add-mins
+  [time mins]
+  (plus time (minutes mins)))
+
+(def custom-formatter (formatter "hh:mm a"))
+
+(defn to-schedule
+  [time]
+  (unparse custom-formatter time))
+
+(-> (init-time 11) (add-mins 45) (add-mins 30)
+                                        ;(get-hour-min)
+    )
+
+(defn add-time
+  [session]
+  (loop [agg-time (init-time (:start session)) talks (:talks session) agg-talks []]
+    (if (seq talks)
+      (let [[current-talk _ ] talks
+            [ _ time ] current-talk
+            new-agg-time (add-mins agg-time time)]
+        (recur new-agg-time
+               (rest talks)
+               (conj agg-talks (conj current-talk (to-schedule new-agg-time)))))
+      (merge session {:talks agg-talks}))))
+
+(init-time 9)
+
+(map (fn [[a _ schedule]] (to-schedule schedule)) (add-time {:talks '([:Clojure 45] [:Ruby 60] [:Writing 60]),:start 9,:end 12,:id 0}))
+
+(sort-by second <>) reverse
+
+(def result (-<> (get-data text2) (add-talks tracks) (sort-talks) (map add-time <>)))
+
+(pprint result)
+(table result :style :unicode)
+
+(def print-fn (fn [track track-num]
+                (pprint (str "Track " track-num))))
+
+(map #(vector (str "Track " %2) %1) (partition 2 result) (iterate inc 1))
+
+(pprint (map #(vector (str "Track " %2) %1) (partition 2 result) (iterate inc 1)))
 
 (def not-nil? (complement nil?))
 
@@ -159,39 +239,6 @@
 
 (in-coll? :z [[[[:a 20] [:b :30]] [[:c 20] [:d :30]]]
               [[[:h 20] [:g :30]] [[:f 20] [:e :30]]]])
-
-(def empty-track [[] []])
-
-(def add-track (partial cons empty-track))
-
-(defn session?
-  [v]
-  (if (vector? v)
-    (and (keyword? (first v)) (integer? (second v)))
-    false))
-
-(facts "A"
-       (session? [:a 60]) => true
-       (session? :b) => false
-       (session? 20) => false)
-
-(defn get-sessions
-  [tracks]
-  (filter session? (tree-seq sequential? identity tracks)))
-
-(pprint (get-sessions [[[[:a 20] [:b 30]] [[:c 20] [:d 30]]]
-                       [[[:h 20] [:g 30]] [[:f 20] [:e 30]]]]))
-
-(get-sessions [[[[:a 20] [:b 30]] [[:c 20] [:d 30]]]
-               [[[:h 20] [:g 30]] [[:f 20] [:e 30]]]])
-
-
-;; (defn assemble-tracks
-;;   [talks]
-;;   (loop [[f & r] talks tracks empty-track]
-;;     (cond
-;;      (nil? f) tracks
-;;      :else (recur r (add-to-track f tracks)))))
 
 
 (def get-tracks #(repeat % empty-track))
@@ -209,23 +256,6 @@
 (def tracks-to-sessions #(filter last-branch?
                                  (tree-seq (complement last-branch?) identity %)))
 
-(fact "a"
-      (tracks-to-sessions (get-tracks 2))
-      (tracks-to-sessions [[[[:a 30] [:c 30]]] [[[:e 30] [:f 30]]]]))
-
-(not-empty [:e])
-
-(defn add-talk
-  [talk tracks]
-  (cons talk tracks))
-
-(reduce (fn [tracks talk]
-          (add-talk talk tracks))
-        (-> num-of-tracks get-tracks tracks-to-sessions)
-        talks)
-
-
-(assemble-tracks d)
 
 (def conversions (slurp "src/tw/conversions.txt"))
 
@@ -304,4 +334,81 @@
 
 (add-transform sub-with-values)
 
-(-> [:pish :tegj :glob :glob] transform eval)
+;; (-> [:pish :tegj :glob :glob] transform eval)
+
+(def bin {:capacity 10 :content []})
+
+(def bins (repeat 2 bin))
+
+(def items (take 20 (repeatedly (fn [] {:desc "abc" :weight (int (rand 100))}))))
+
+(def bin-capacity :capacity)
+
+(def bin-items :items)
+
+(def item-wt :weight)
+
+(sort-by fitem-weight items)
+
+(defn agg
+  [f]
+  (fn [coll]
+    (apply + (map f coll))))
+
+((agg item-w) (take 5 (repeatedly (fn [] {:desc "abc" :weight (int (rand 100))}))))
+
+(def sample-bin {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50} {:desc :a :weight 30}]})
+
+(def sample-bins [{:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50} {:desc :a :weight 30}]}
+                  {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50}]}
+                  {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50}]}])
+
+(def sample-item1 {:desc :new :weight 10})
+
+(def sample-item2 {:desc :new :weight 20})
+
+(defn can-add-to-bin?
+  [bin-capacity bin-items item-wt]
+  (fn [bin [item]]
+    ((some-fn pos? zero?) (- (bin-capacity bin)
+                             (+ ((agg item-wt) (bin-items bin))
+                                (item-wt item))))))
+
+(def can-add-to-sample-bin? (can-add-to-bin? bin-capacity bin-items item-wt))
+
+(defn update-bin
+  [bin [item]]
+  (assoc bin :items (conj (:items bin) item)))
+
+(update-bin sample-bin [sample-item1])
+
+(bin-capacity sample-bin)
+
+(can-add-to-sample-bin? sample-bin [sample-item1])
+
+(can-add-to-sample-bin? sample-bin [sample-item2])
+
+(defn update-first
+  [pred update]
+  (fn [coll & p]
+    (reduce
+     (fn [acc x]
+       (if (pred x p)
+         (reduced (concat (:res acc) [(update x p)] (rest (:coll acc))))
+         (assoc acc
+           :res (conj (:res acc) x)
+           :coll (rest (:coll acc)))))
+     {:coll coll :res []}
+     coll)))
+
+(def add-item (update-first can-add-to-sample-bin? update-bin))
+
+(add-item sample-bins sample-item1)
+
+(def sample-items [{:desc :new-a :weight 10} {:desc :new-b :weight 20} {:desc :new-c :weight 20}])
+
+(defn add-items
+  [bins items]
+  (reduce #(add-item %1 %2) bins items))
+
+(add-items sample-bins (reverse (sort-by :weight sample-items)))
