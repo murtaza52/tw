@@ -1,6 +1,6 @@
 ;; This ns contains generic code to solve a 1D bin-packing problem.
 (ns tw.bin-packing
-  (:use [tw.utils.coll :only [update-first]]))
+  (:use [tw.utils.coll :only [update-first agg]]))
 
 (def sample-bin {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50} {:desc :a :weight 30}]})
 
@@ -24,16 +24,6 @@
 
 ;; fn for retreiving an item's weight
 (def item-wt :weight)
-
-(item-wt sample-item1)
-
-(defn agg
-  "Takes a fn f of a single arg as an argument, and returns a fn which takes a coll and applies f to every elem of the coll and adds the results."
-  [f]
-  (fn [coll]
-    (apply + (map f coll))))
-
-((agg item-w) (take 5 (repeatedly (fn [] {:desc "abc" :weight (int (rand 100))}))))
 
 (defn can-add-to-bin?
   [bin-capacity bin-items item-wt]
