@@ -1,3 +1,4 @@
+;; This ns contains utility fns for dealing with text
 (ns tw.utils.text
   (:use [tw.utils.misc :only [freturn]]
         [clojure.string :only [split]]
