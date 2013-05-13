@@ -87,7 +87,7 @@
 (fact "returns a formatted date string"
       (dt-str (date-time 2011 4 4 5)) => "05:00AM")
 
-
+;; given a session, calculates the schedule for each talk and adds it to the talk vector.
 (defn add-time
   [session]
   (loop [agg-time (init-time (:start session)) talks (:talks session) agg-talks []]
@@ -100,15 +100,18 @@
                (conj agg-talks (conj current-talk (dt-str agg-time)))))
       (merge session {:talks agg-talks}))))
 
+;; vectors defining the organizer events which will be added to the morning and evening sessions.
 (def organizer-events {:lunch [:Lunch nil "12:00PM"]
                        :networking [(keyword "Networking Event") nil "05:00PM"]})
 
+;; adds the organizer events to a seq of sessions.
 (def add-organizer-events
   (partial map (fn [{:keys [talks id] :as s}]
                   (if (even? id)
                     (assoc s :talks (conj talks (organizer-events :lunch)))
                     (assoc s :talks (conj talks (organizer-events :networking)))))))
 
-(defn assembled-tracks
+;; assembles the tracks by - parsing the input, adding the talks to the tracks, adding scheduled time, adding the organizer events and finally printing the output.
+(defn assemble-tracks
   []
   (-<> (parse-input text) (add-talks tracks <>) (map add-time <>) add-organizer-events print-tracks))

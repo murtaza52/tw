@@ -13,4 +13,4 @@
   :repl-options {:init-ns tw.core
                  :init (do
                          (use 'tw.core)
-                         (assembled-tracks))})
+                         (assemble-tracks))})
