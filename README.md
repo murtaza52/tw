@@ -1,13 +1,7 @@
-# tw
+## Instructions
 
-A Clojure library designed to ... well, that part is up to you.
+The app can be run by starting the repl. It calls the (assemble-tracks) fn in the tw.core ns, which processes the input and prints the output on the nrepl.
 
-## Usage
+It can also be re-run by calling the (assemble-tracks) fn in the repl.
 
-FIXME
-
-## License
-
-Copyright © 2013 FIXME
-
-Distributed under the Eclipse Public License, the same as Clojure.
+This app uses the midje library for running tests. It uses one of the midje conventions, which allows mixing of the tests with the code. This allows for much more readable code.

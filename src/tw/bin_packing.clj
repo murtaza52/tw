@@ -5,7 +5,7 @@
 
 
 ;; the bin packing algorithm
-####################################################################
+;; ####################################################################
 
 ;; algorithm for detrming if an item can be added to the bin or not.
 ;; the below fn takes the following three fns as input and returns a fn-
@@ -38,7 +38,7 @@
       (reduce #(add-f %1 %2) bins sorted-items))))
 
 
-##############################################################################################
+;; ##############################################################################################
 ;; sample data and fns to test the bin-packing algorithm.
 (def sample-bin {:capacity 100 :items [{:desc :a :weight 10} {:desc :a :weight 50} {:desc :a :weight 30}]})
 

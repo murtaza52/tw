@@ -8,3 +8,7 @@
   (if-let [v f]
     v
     x))
+
+(fact "returns the given value if the f evals to falsy"
+      (freturn 2 3) => 2
+      (freturn nil 3) => 3)
