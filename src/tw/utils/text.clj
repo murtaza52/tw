@@ -6,7 +6,8 @@
 (def split-by-nline #(split % #"\n"))
 
 (fact "Splits lines"
-      (split-by-nline text2) => ["Ruby Errors from Mismatched Gem Versions 45min" "Common Ruby Errors 45min"])
+      (split-by-nline "Ruby Errors from Mismatched Gem Versions 45min \n Common Ruby Errors 45min")
+      => ["Ruby Errors from Mismatched Gem Versions 45min" "Common Ruby Errors 45min"])
 
 (def split-by-tab #(split % #"\t"))
 
